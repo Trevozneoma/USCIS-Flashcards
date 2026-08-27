@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USCIS Citizenship Flashcards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100 min-h-screen flex flex-col justify-between p-4 sm:p-6 text-slate-800">
+
+    <!-- Header -->
+    <header class="w-full max-w-2xl mx-auto bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-slate-200/80 p-4 mb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md">
+                <i data-lucide="book-open" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-slate-800">USCIS Citizenship Test</h1>
+                <p class="text-xs text-slate-500">Official 100 Civics Questions (Lehi, UT)</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button id="autoPlayBtn" onclick="toggleAutoPlay()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-slate-100 text-slate-700 hover:bg-slate-200">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <span id="autoPlayText">Auto-Read All</span>
+            </button>
+
+            <button onclick="generateNewDeck()" class="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm hover:bg-blue-700 transition-all">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                New Set of 25
+            </button>
+        </div>
+    </header>
+
+    <!-- Progress Bar & Stats -->
+    <div class="w-full max-w-2xl mx-auto bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-slate-200/80 p-3 mb-6">
+        <div class="flex justify-between items-center mb-1.5 text-xs font-semibold text-slate-600">
+            <span id="cardProgressText">Card 1 of 25</span>
+            <div class="flex gap-3">
+                <span id="masteredCountText" class="text-emerald-600 flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> <span id="gotItCount">0</span> Got It</span>
+                <span id="practiceCountText" class="text-amber-600 flex items-center gap-1"><i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> <span id="practiceCount">0</span> Practice</span>
+            </div>
+        </div>
+        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+            <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Flashcard Area -->
+    <div class="w-full max-w-2xl mx-auto flex-1 flex flex-col justify-center items-center mb-6">
+        <div 
+            id="flashcard"
+            onclick="handleFlip()"
+            style="min-height: 38rem;"
+            class="w-full bg-white rounded-3xl shadow-xl border border-slate-200/80 p-8 cursor-pointer flex flex-col justify-between relative transform transition-all duration-300 hover:shadow-2xl overflow-hidden group"
+        >
+            <!-- Top Card Bar -->
+            <div class="flex justify-between items-center text-xs font-medium text-slate-400">
+                <span id="cardCategory" class="bg-slate-100 px-3 py-1 rounded-full text-slate-600">Category</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-400 group-hover:text-blue-600 transition-colors flex items-center gap-1">
+                        <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Click card to flip
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card Content Area -->
+            <div id="cardContent" class="my-auto py-6 flex flex-col items-center text-center w-full">
+                <!-- Injected dynamically -->
+            </div>
+
+            <!-- Bottom Card Bar / Audio & Grading -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                <button 
+                    onclick="speakCurrentSide(event)"
+                    class="flex items-center gap-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-all"
+                >
+                    <i data-lucide="volume-2" class="w-4 h-4"></i>
+                    <span id="audioButtonText">Read Question Aloud</span>
+                </button>
+
+                <!-- Grading buttons -->
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button 
+                        onclick="markStatus('practice', event)"
+                        class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2 rounded-xl text-xs font-semibold transition-all border border-amber-200"
+                    >
+                        <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                        Needs Practice
+                    </button>
+                    <button 
+                        onclick="markStatus('mastered', event)"
+                        class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-md"
+                    >
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        Got It!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Footer -->
+    <div class="w-full max-w-2xl mx-auto flex items-center justify-between gap-4">
+        <button 
+            id="prevBtn"
+            onclick="handlePrev()"
+            class="px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium text-sm shadow-sm hover:bg-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+            Previous
+        </button>
+
+        <span id="footerCardCounter" class="text-xs font-semibold text-slate-500">Card 1 / 25</span>
+
+        <button 
+            onclick="handleNext()"
+            class="flex items-center gap-1 px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm shadow-md hover:bg-blue-700 transition-all"
+        >
+            Next
+            <i data-lucide="skip-forward" class="w-4 h-4"></i>
+        </button>
+    </div>
+
+    <!-- AI Tutor Modal -->
+    <div id="aiModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[85vh]">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <div class="bg-indigo-600 text-white p-2 rounded-xl">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    </div>
+                    <h3 id="aiModalTitle" class="font-bold text-slate-800 text-base">AI Tutor</h3>
+                </div>
+                <button onclick="closeAiModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg p-1">✕</button>
+            </div>
+
+            <div id="aiModalBody" class="overflow-y-auto flex-1 my-2 pr-1 text-slate-700 text-sm leading-relaxed whitespace-pre-wrap bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
+                <!-- AI Response / Loader -->
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
+                <button onclick="closeAiModal()" class="bg-slate-900 text-white px-5 py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 transition-all">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FULL_QUESTION_POOL = [
+            {
+                id: 1,
+                category: "Principles of American Democracy",
+                question: "What is the supreme law of the land?",
+                answers: ["the Constitution"],
+                hint: "It is the fundamental law of the U.S. from 1787."
+            },
+            {
+                id: 2,
+                category: "Principles of American Democracy",
+                question: "What does the Constitution do?",
+                answers: ["sets up the government", "defines the government", "protects basic rights of Americans"],
+                hint: "Think about setting up the framework of the nation."
+            },
+            {
+                id: 3,
+                category: "Principles of American Democracy",
+                question: "The idea of self-government is in the first three words of the Constitution. What are these words?",
+                answers: ["We the People"],
+                hint: "These famous words start the Preamble."
+            },
+            {
+                id: 4,
+                category: "Principles of American Democracy",
+                question: "What is an amendment?",
+                answers: ["a change (to the Constitution)", "an addition (to the Constitution)"],
+                hint: "A formal modification or addition."
+            },
+            {
+                id: 5,
+                category: "Principles of American Democracy",
+                question: "What do we call the first ten amendments to the Constitution?",
+                answers: ["the Bill of Rights"],
+                hint: "These guarantee fundamental personal liberties."
+            },
+            {
+                id: 6,
+                category: "Principles of American Democracy",
+                question: "What is one right or freedom from the First Amendment?",
+                answers: ["speech", "religion", "assembly", "press", "petition the government"],
+                hint: "Think about expressing yourself, worshiping, or gathering."
+            },
+            {
+                id: 7,
+                category: "Principles of American Democracy",
+                question: "How many amendments does the Constitution have?",
+                answers: ["twenty-seven (27)"],
+                hint: "It's a number between 25 and 30."
+            },
+            {
+                id: 8,
+                category: "Principles of American Democracy",
+                question: "What did the Declaration of Independence do?",
+                answers: ["announced our independence (from Great Britain)", "declared our independence (from Great Britain)", "said that the United States is free (from Great Britain)"],
+                hint: "It broke ties with the British King in 1776."
+            },
+            {
+                id: 9,
+                category: "Principles of American Democracy",
+                question: "What are two rights in the Declaration of Independence?",
+                answers: ["life", "liberty", "pursuit of happiness"],
+                hint: "Unalienable rights mentioned by Thomas Jefferson."
+            },
+            {
+                id: 10,
+                category: "Principles of American Democracy",
+                question: "What is freedom of religion?",
+                answers: ["You can practice any religion, or not practice a religion."],
+                hint: "Freedom of worship choice without government interference."
+            },
+            {
+                id: 11,
+                category: "Principles of American Democracy",
+                question: "What is the economic system in the United States?",
+                answers: ["capitalist economy", "market economy"],
+                hint: "Private property and free enterprise."
+            },
+            {
+                id: 12,
+                category: "Principles of American Democracy",
+                question: "What is the 'rule of law'?",
+                answers: ["Everyone must follow the law.", "Leaders must obey the law.", "Government must obey the law.", "No one is above the law."],
+                hint: "Nobody is exempt from legal consequences."
+            },
+            {
+                id: 13,
+                category: "System of Government",
+                question: "Name one branch or part of the government.",
+                answers: ["Congress", "legislative", "President", "executive", "the courts", "judicial"],
+                hint: "There are three main branches."
+            },
+            {
+                id: 14,
+                category: "System of Government",
+                question: "What stops one branch of government from becoming too powerful?",
+                answers: ["checks and balances", "separation of powers"],
+                hint: "A system where each branch limits the others."
+            },
+            {
+                id: 15,
+                category: "System of Government",
+                question: "Who is in charge of the executive branch?",
+                answers: ["the President"],
+                hint: "The head of state and government."
+            },
+            {
+                id: 16,
+                category: "System of Government",
+                question: "Who makes federal laws?",
+                answers: ["Congress", "Senate and House (of Representatives)", "(U.S. or national) legislature"],
+                hint: "The bicameral legislative body on Capitol Hill."
+            },
+            {
+                id: 17,
+                category: "System of Government",
+                question: "What are the two parts of the U.S. Congress?",
+                answers: ["the Senate and House (of Representatives)"],
+                hint: "One chamber has 100 members, the other has 435."
+            },
+            {
+                id: 18,
+                category: "System of Government",
+                question: "How many U.S. Senators are there?",
+                answers: ["one hundred (100)"],
+                hint: "Two from each of the 50 states."
+            },
+            {
+                id: 19,
+                category: "System of Government",
+                question: "We elect a U.S. Senator for how many years?",
+                answers: ["six (6)"],
+                hint: "Their terms are longer than House members."
+            },
+            {
+                id: 20,
+                category: "System of Government",
+                question: "Who is one of your state's U.S. Senators now?",
+                answers: ["Mike Lee", "John Curtis"],
+                hint: "Representing Utah in Washington D.C."
+            },
+            {
+                id: 21,
+                category: "System of Government",
+                question: "The House of Representatives has how many voting members?",
+                answers: ["four hundred thirty-five (435)"],
+                hint: "Based on state population sizes."
+            },
+            {
+                id: 22,
+                category: "System of Government",
+                question: "We elect a U.S. Representative for how many years?",
+                answers: ["two (2)"],
+                hint: "Their terms are shorter than Senators."
+            },
+            {
+                id: 23,
+                category: "System of Government",
+                question: "Name your U.S. Representative.",
+                answers: ["Mike Kennedy"],
+                hint: "Serving Utah's congressional district."
+            },
+            {
+                id: 24,
+                category: "System of Government",
+                question: "Who does a U.S. Senator represent?",
+                answers: ["all people of the state"],
+                hint: "They represent their entire state."
+            },
+            {
+                id: 25,
+                category: "System of Government",
+                question: "Why do some states have more Representatives than other states?",
+                answers: ["(because of) the state's population", "(because) they have more people", "(because) some states have more people"],
+                hint: "It depends on how many citizens live there."
+            },
+            {
+                id: 26,
+                category: "System of Government",
+                question: "We elect a President for how many years?",
+                answers: ["four (4)"],
+                hint: "The presidential term length."
+            },
+            {
+                id: 27,
+                category: "System of Government",
+                question: "In what month do we vote for President?",
+                answers: ["November"],
+                hint: "The elections happen in late autumn."
+            },
+            {
+                id: 28,
+                category: "System of Government",
+                question: "What is the name of the President of the United States now?",
+                answers: ["Donald Trump"],
+                hint: "The current U.S. president."
+            },
+            {
+                id: 29,
+                category: "System of Government",
+                question: "What is the name of the Vice President of the United States now?",
+                answers: ["JD Vance"],
+                hint: "The current U.S. vice president."
+            },
+            {
+                id: 30,
+                category: "System of Government",
+                question: "If the President can no longer serve, who becomes President?",
+                answers: ["the Vice President (of the United States)"],
+                hint: "Next in the line of presidential succession."
+            }
+        ];
+
+        let deck = [];
+        let currentIndex = 0;
+        let isFlipped = false;
+        let showHint = false;
+        let cardStatus = {}; // { cardId: 'mastered' | 'practice' }
+        let isAutoPlaying = false;
+
+        function generateNewDeck() {
+            const shuffled = [...FULL_QUESTION_POOL].sort(() => 0.5 - Math.random());
+            deck = shuffled.slice(0, 25);
+            currentIndex = 0;
+            isFlipped = false;
+            showHint = false;
+            cardStatus = {};
+            isAutoPlaying = false;
+            updateAutoPlayUI();
+            renderCard();
+        }
+
+        function renderCard() {
+            if (deck.length === 0) return;
+            const card = deck[currentIndex];
+            
+            document.getElementById('cardCategory').textContent = card.category;
+            document.getElementById('cardProgressText').textContent = `Card ${currentIndex + 1} of ${deck.length}`;
+            document.getElementById('footerCardCounter').textContent = `Card ${currentIndex + 1} / ${deck.length}`;
+            document.getElementById('prevBtn').disabled = currentIndex === 0;
+
+            const masteredCount = Object.values(cardStatus).filter(s => s === 'mastered').length;
+            const practiceCount = Object.values(cardStatus).filter(s => s === 'practice').length;
+            document.getElementById('gotItCount').textContent = masteredCount;
+            document.getElementById('practiceCount').textContent = practiceCount;
+            
+            const progressPercent = Math.round(((masteredCount + practiceCount) / deck.length) * 100);
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+
+            const contentDiv = document.getElementById('cardContent');
+            const audioBtnText = document.getElementById('audioButtonText');
+
+            if (!isFlipped) {
+                audioBtnText.textContent = "Read Question Aloud";
+                let html = `
+                    <span class="text-xs font-bold uppercase tracking-wider text-blue-600 mb-3 block">Question</span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 leading-snug mb-6">${card.question}</h2>
+                `;
+                if (card.hint) {
+                    if (!showHint) {
+                        html += `
+                            <div class="mt-2" onclick="event.stopPropagation()">
+                                <button onclick="toggleHint()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl border border-blue-200 transition-all shadow-sm">
+                                    💡 Show Hint
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="mt-2" onclick="event.stopPropagation()">
+                                <p class="text-sm text-slate-500 italic bg-blue-50/50 py-2.5 px-4 rounded-xl inline-block border border-blue-100 max-w-md">
+                                    💡 Hint: ${card.hint}
+                                </p>
+                            </div>
+                        `;
+                    }
+                }
+                contentDiv.innerHTML = html;
+            } else {
+                audioBtnText.textContent = "Read Answer Aloud";
+                let answerHtml = '';
+                if (card.answers.length === 1) {
+                    answerHtml = `<p class="text-2xl sm:text-3xl font-semibold text-slate-800 mb-6">${card.answers[0]}</p>`;
+                } else {
+                    answerHtml = `<ul class="text-left w-full max-w-md space-y-2 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200">`;
+                    card.answers.forEach(ans => {
+                        answerHtml += `
+                            <li class="flex items-start gap-2.5 text-slate-700 text-lg font-medium">
+                                <span class="inline-block w-2 h-2 rounded-full bg-blue-600 mt-2.5 flex-shrink-0"></span>
+                                <span>${ans}</span>
+                            </li>
+                        `;
+                    });
+                    answerHtml += `</ul>`;
+                }
+
+                contentDiv.innerHTML = `
+                    <div class="w-full flex flex-col items-center max-h-[24rem] overflow-y-auto px-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2 block">Correct Answer</span>
+                        ${answerHtml}
+                        <div class="flex flex-wrap justify-center gap-2 mt-2 pt-4 border-t border-slate-100 w-full" onclick="event.stopPropagation()">
+                            <button onclick="openAiTutor('explain', event)" class="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border border-indigo-200 shadow-sm">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-600"></i> AI Explain
+                            </button>
+                            <button onclick="openAiTutor('mnemonic', event)" class="flex items-center gap-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border border-purple-200 shadow-sm">
+                                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-purple-600"></i> Memory Trick
+                            </button>
+                            <button onclick="openAiTutor('portuguese', event)" class="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border border-emerald-200 shadow-sm">
+                                <i data-lucide="globe" class="w-3.5 h-3.5 text-emerald-600"></i> Portuguese (BR)
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            lucide.createIcons();
+
+            if (isAutoPlaying) {
+                const fullText = isFlipped ? `Answer: ${card.answers.join('. ')}` : `Question: ${card.question}`;
+                speak(fullText);
+            }
+        }
+
+        function handleFlip() {
+            isFlipped = !isFlipped;
+            renderCard();
+        }
+
+        function toggleHint() {
+            showHint = !showHint;
+            renderCard();
+        }
+
+        function handleNext() {
+            if (currentIndex < deck.length - 1) {
+                currentIndex++;
+                isFlipped = false;
+                showHint = false;
+                renderCard();
+            } else {
+                currentIndex = 0;
+                isFlipped = false;
+                showHint = false;
+                renderCard();
+            }
+        }
+
+        function handlePrev() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                isFlipped = false;
+                showHint = false;
+                renderCard();
+            }
+        }
+
+        function markStatus(status, event) {
+            event.stopPropagation();
+            const card = deck[currentIndex];
+            cardStatus[card.id] = status;
+            handleNext();
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function speakCurrentSide(event) {
+            event.stopPropagation();
+            const card = deck[currentIndex];
+            const text = isFlipped ? `Answer: ${card.answers.join('. ')}` : `Question: ${card.question}`;
+            speak(text);
+        }
+
+        function toggleAutoPlay() {
+            isAutoPlaying = !isAutoPlaying;
+            updateAutoPlayUI();
+            if (isAutoPlaying) {
+                const card = deck[currentIndex];
+                const text = isFlipped ? `Answer: ${card.answers.join('. ')}` : `Question: ${card.question}`;
+                speak(text);
+            } else {
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        }
+
+        function updateAutoPlayUI() {
+            const btn = document.getElementById('autoPlayBtn');
+            const txt = document.getElementById('autoPlayText');
+            if (isAutoPlaying) {
+                btn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-amber-500 text-white shadow-sm";
+                txt.textContent = "Auto-Reading On";
+            } else {
+                btn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-slate-100 text-slate-700 hover:bg-slate-200";
+                txt.textContent = "Auto-Read All";
+            }
+        }
+
+        async function openAiTutor(mode, event) {
+            event.stopPropagation();
+            const card = deck[currentIndex];
+            const modal = document.getElementById('aiModal');
+            const modalTitle = document.getElementById('aiModalTitle');
+            const modalBody = document.getElementById('aiModalBody');
+            
+            modal.classList.remove('hidden');
+            
+            if (mode === 'explain') modalTitle.textContent = "AI Civics Explanation";
+            if (mode === 'mnemonic') modalTitle.textContent = "Memory Trick & Mnemonic";
+            if (mode === 'portuguese') modalTitle.textContent = "Tradução em Português (BR)";
+
+            modalBody.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-12 text-slate-400 gap-3">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    <p class="text-sm font-medium animate-pulse">Consulting AI Civics Tutor...</p>
+                </div>
+            `;
+
+            let userQuery = "";
+            if (mode === 'explain') {
+                userQuery = `Explain this citizenship civics question in simple, clear English: "${card.question}" with answers: ${card.answers.join(', ')}`;
+            } else if (mode === 'mnemonic') {
+                userQuery = `Give a short, clever memory trick or mnemonic to help remember the answer(s) to this USCIS question: "${card.question}" - Answer(s): ${card.answers.join(', ')}`;
+            } else if (mode === 'portuguese') {
+                userQuery = `Translate the following USCIS citizenship question and its answers into natural Brazilian Portuguese: Question: "${card.question}" Answers: ${card.answers.join(', ')}`;
+            }
+
+            const apiKey = "";
+            const systemPrompt = "You are a helpful civics tutor preparing someone for the USCIS citizenship exam.";
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] }
+                    })
+                });
+
+                if (!response.ok) throw new Error('API request failed');
+
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
+                modalBody.textContent = text;
+            } catch (error) {
+                modalBody.textContent = "Sorry, we couldn't load the AI tutor response right now. Please try again.";
+            }
+        }
+
+        function closeAiModal() {
+            document.getElementById('aiModal').classList.add('hidden');
+        }
+
+        window.onload = function() {
+            generateNewDeck();
+        };
+    </script>
+</body>
+</html>
